@@ -6,10 +6,7 @@
 #include <cstdio>
 
 using namespace std;
-string *char_to_string(char *str){
-    for (int i =0; i< str.size();
 
-}
 char *word_reader(string str, int position){
     int i = 0;
     char *word =(char*) malloc(sizeof(char)*(i+1));
@@ -66,24 +63,28 @@ public:
                 break;
             }
         }
-        string str_tmp;
+        string tmp_str = base.name;
         if (in_list_flag == 0){
-            base.available_names[base.available_names.size()+1] = char_to_string(&base.name);
-        }
+                base.available_names.insert(base.available_names.end(),tmp_str);
+                cout << base.name << " was added to the db-list." << endl;
+        };
         if (mkdir(base.name) != 0 ) {
             cout << "Can't create database with name " << base.name;
         }
+        else {
+            cout << base.name << " was created." << endl;
+        };
+
     };
     void use(){
         strcpy(base.current_name,word_reader(request_line,4));
     }
     void create_table() {
         strcpy(base.current_table.name,word_reader(request_line,14));
-
     }
 
 };
-int main() {
+int one_call() {
     request str;
     FILE *list;
     if ((list = fopen("list.bd", "r+")) == NULL){
@@ -106,14 +107,20 @@ int main() {
         case 1 : str.create_database(); break;
         case 2 : str.use(); break;
         case 3 : str.create_table();break;
-        default: cout << "Ð¤Ð¸Ñ‡Ð°";
-
-
+        default: cout << "Ôè÷à";
     };
-    cout << "\n" << str.type_of_request;
-    for (i = 0; i < str.base.available_names.size();i++){
-        cout << str.base.available_names[i];
-    };
-    system("pause");
+    list = fopen("list.bd","w");
+    for (int i=0;i<base.available_names.size();i++){
+            fputs(str.base.available_names[i],list);
+        }
+    fclose(list);
+    return 0;
+}
+int main(){
+    int status;
+    do {
+        status = one_call();
+    }
+    while (status == 0);
     return 0;
 }
