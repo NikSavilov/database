@@ -4,9 +4,22 @@
 #include <io.h>
 #include <cstring>
 #include <cstdio>
+#include <fstream>
 
 using namespace std;
-
+void setpos(int x, int y) {
+    COORD k;
+    k.X = x;
+    k.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), k);
+}
+void horiz_border_printer(int n){
+    cout << "+";
+    for (int i=1;i<n-1;i++){
+        cout << "-";
+    }
+    cout << "+\n";
+}
 char *word_reader(string str, int position){
     int i = 0;
     char *word =(char*) malloc(sizeof(char)*(i+1));
@@ -19,6 +32,13 @@ char *word_reader(string str, int position){
     word[i]='\0';
     return word;
 }
+void string_table_printer(vector <string> &vector1){
+    int max_size = -1;
+    for (int i = 0; i < vector1.size(); i++) {
+        (vector1[i].length() > max_size) ? max_size = vector1[i].length() : 0;
+    }
+    cout << max_size << vector1[1].length();
+}
 class table {
 public:
     char name[256];
@@ -29,7 +49,7 @@ class database {
 public:
     char name[256], current_name[256];
     table current_table;
-    vector <string> available_names;
+    vector<string> available_names;
 };
 class request{
 public:
@@ -42,17 +62,15 @@ public:
     }
     void type_identifier() {
         regex create_database_mask("create database [a-zA-Z0-9]+;");
+        regex show_databases_mask("show databases;");
         regex use_mask("use [a-zA-Z0-9]+;");
         regex create_table_mask("create table [a-zA-Z0-9]+\\([a-z0-9]+ [a-z]\\([0-9]+\\)[, [a-zA-Z0-9]+ [DEFAULT default_value] [AUTO_INCREMENT] [PRIMARY KEY];");
         regex select_mask("select [a-zA-Z0-9\\*]+[, [a-zA-Z0-9\\*]+]* from [a-zA-Z0-9]+;");
         regex insert_mask("insert into [a-zA-Z0-9]+\\([a-zA-Z0-9]+[, [a-zA-Z0-9]+]*\\) values [a-zA-Z0-9]+\\.[a-zA-Z0-9]+[, [a-zA-Z0-9]+\\.[a-zA-Z0-9]+]*;");
         regex delete_mask("delete");
         type_of_request =   1 * ((int) regex_match(request_line,create_database_mask)) +
-                            2 * ((int) regex_match(request_line,use_mask)) +
-                            3 * ((int) regex_match(request_line,create_table_mask)) +
-                            4 * ((int) regex_match(request_line,select_mask)) +
-                            5 * ((int) regex_match(request_line,insert_mask)) +
-                            6 * ((int) regex_match(request_line,delete_mask));
+                            2 * ((int) regex_match(request_line,show_databases_mask)) ;
+
     };
     void create_database() {
         strcpy(base.name,word_reader(request_line,16));
@@ -69,13 +87,30 @@ public:
                 cout << base.name << " was added to the db-list." << endl;
         };
         if (mkdir(base.name) != 0 ) {
-            cout << "Can't create database with name " << base.name;
+            cout << "Can't create database." << endl;
         }
         else {
             cout << base.name << " was created." << endl;
         };
-
     };
+    void show_databases(){
+        int max_size = -1, tmp_len;
+        for (int i = 0; i < base.available_names.size(); i++) {
+            if ((tmp_len = base.available_names[i].length()) > max_size){
+                max_size = tmp_len;
+            }
+        }
+        horiz_border_printer(max_size + 4);
+        for (int i = 0; i < base.available_names.size(); i++) {
+            cout << "| " << base.available_names[i];
+            for (int j=0;j<(max_size-base.available_names[i].length())/8+1;j++){
+                cout << "\t";
+            }
+            cout << "|\n";
+        }
+        horiz_border_printer(max_size + 4);
+        cout << "\n" << base.available_names.size() << " rows in set.\n\n";
+    }
     void use(){
         strcpy(base.current_name,word_reader(request_line,4));
     }
@@ -86,34 +121,33 @@ public:
 };
 int one_call() {
     request str;
-    FILE *list;
-    if ((list = fopen("list.bd", "r+")) == NULL){
-        if ((list = fopen("list.bd", "w")) == NULL){
-            cout << "Error of creating parameters file.\n";
-            exit(-1);
-        };
+    fstream list;
+    list.open("list.bd", ios::in | ios::app);
+    if (list.bad()){
+        cout << "Error of creating parameters file.\n";
+        exit(-1);
     };
-    char buffer[256];
-    int i = 0;
-    while ((fgets(buffer,256,list)) != NULL) {
-        str.base.available_names[i] = buffer;
-        i++;
+    string buffer_str;
+    while (list >> buffer_str) {
+        str.base.available_names.push_back(buffer_str);
     }
-    fclose(list);
+    list.close();
     str.RequestSet();
     str.type_identifier();
     switch (str.type_of_request) {
         case 0 : cout << "Wrong request.\n"; break;
         case 1 : str.create_database(); break;
-        case 2 : str.use(); break;
+        case 2 : str.show_databases(); break;
         case 3 : str.create_table();break;
-        default: cout << "Ôè÷à";
+        case 4 :
+        default: cout << "Ð¤Ð¸Ñ‡Ð°\n";
     };
-    list = fopen("list.bd","w");
-    for (int i=0;i<base.available_names.size();i++){
-            fputs(str.base.available_names[i],list);
+    ofstream list_out;
+    list_out.open("list.bd");
+    for (int i=0;i<str.base.available_names.size();i++){
+            list_out << str.base.available_names[i] << " ";
         }
-    fclose(list);
+    list.close();
     return 0;
 }
 int main(){
@@ -122,5 +156,6 @@ int main(){
         status = one_call();
     }
     while (status == 0);
+    system("pause");
     return 0;
 }
