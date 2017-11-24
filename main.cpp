@@ -5,8 +5,8 @@
 #include <cstring>
 #include <cstdio>
 #include <fstream>
-
 using namespace std;
+
 void setpos(int x, int y) {
     COORD k;
     k.X = x;
@@ -20,6 +20,7 @@ void horiz_border_printer(int n){
     }
     cout << "+\n";
 }
+
 char *word_reader(string str, int position){
     int i = 0;
     char *word =(char*) malloc(sizeof(char)*(i+1));
@@ -33,16 +34,49 @@ char *word_reader(string str, int position){
     return word;
 }
 void string_table_printer(vector <string> &vector1){
-    int max_size = -1;
+    int max_size = -1, tmp_len;
     for (int i = 0; i < vector1.size(); i++) {
-        (vector1[i].length() > max_size) ? max_size = vector1[i].length() : 0;
+        if ((tmp_len = vector1[i].length()) > max_size){
+            max_size = tmp_len;
+        }
     }
-    cout << max_size << vector1[1].length();
+    horiz_border_printer(max_size + 4);
+    for (int i = 0; i < vector1.size(); i++) {
+        cout << "| " << vector1[i];
+        for (int j=0;j<(max_size-vector1[i].length())/8+1;j++){
+            cout << "\t";
+        }
+        cout << "|\n";
+    }
+    horiz_border_printer(max_size + 4);
+    cout << "\n" << vector1.size() << " rows in set.\n\n";
 }
+void ints_to_strings(vector <int> &vector1){
+    vector <string> vector2;
+    for (int i=0;i<vector1.size();i++){
+        vector2[i]=to_string(vector1[i]);
+    }
+}
+void complex_table_printer(vector <vector <string>> &vector1){
+    for (int j=0;j<vector1[1].size();j++) {
+        for (int i = 0; i < vector1.size(); i++) {
+
+        }
+    }
+}
+
+class caret_position{
+public:
+    struct cur {
+        int x;
+        int y;
+    };
+    struct set_cur_pos
+};
 class table {
 public:
     char name[256];
-    vector <vector <char>> name_of_column;
+    vector <vector <string>> name_of_column;
     int rows_amount;
 };
 class database {
@@ -94,7 +128,8 @@ public:
         };
     };
     void show_databases(){
-        int max_size = -1, tmp_len;
+        string_table_printer(base.available_names);
+        /*int max_size = -1, tmp_len;
         for (int i = 0; i < base.available_names.size(); i++) {
             if ((tmp_len = base.available_names[i].length()) > max_size){
                 max_size = tmp_len;
@@ -109,7 +144,7 @@ public:
             cout << "|\n";
         }
         horiz_border_printer(max_size + 4);
-        cout << "\n" << base.available_names.size() << " rows in set.\n\n";
+        cout << "\n" << base.available_names.size() << " rows in set.\n\n";*/
     }
     void use(){
         strcpy(base.current_name,word_reader(request_line,4));
@@ -119,6 +154,7 @@ public:
     }
 
 };
+
 int one_call() {
     request str;
     fstream list;
