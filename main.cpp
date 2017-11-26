@@ -27,10 +27,10 @@ void horiz_border_printer(int n){
 char *word_reader(string str, int position){
     int i = 0;
     char *word =(char*) malloc(sizeof(char)*(i+1));
-    while (isalnum(str[position])) {
-        word[i]= str[position];
+    while (isalnum(str[position])||(!isalnum(word[0]))) {
+        strcat(word,str.c_str());
         position++;
-        i++;
+        (isalnum(word[0])) ? i++ : 0;
         word =(char*) realloc(word, sizeof(char)*(i+1));
     }
     word[i]='\0';
@@ -53,12 +53,6 @@ void string_table_printer(vector <string> &vector1){
     }
     horiz_border_printer(max_size + 4);
     cout << "\n" << vector1.size() << " rows in set.";
-}
-void ints_to_strings(vector <int> &vector1){
-    vector <string> vector2;
-    for (int i=0;i<vector1.size();i++){
-        vector2[i]=to_string(vector1[i]);
-    }
 }
 void complex_table_printer(vector <vector <string>> &vector1){
     vector <int> row_width(vector1.size());
@@ -88,6 +82,8 @@ public:
     vector <string> types_of_columns;
     vector <string> names_of_columns;
     int columns_amount, rows_amount;
+    char col_name[64], col_type[64], col_dig[64];
+    bool col_key_flag;
 };
 class database {
 public:
@@ -162,13 +158,15 @@ public:
             cout << "Error 1";
             exit(-1);
         }
-        tables_list >> base.columns_amount;
+        string buffer_str;
         int i = 0;
-        while (tables_list >> base.list_of_available_tables[0]){
+        while (tables_list >> buffer_str) {
+            base.available_tables.push_back(buffer_str);
             i++;
         }
+        base.columns_amount = base.available_tables.size();
         tables_list.close();
-        strcpy(base.current_table.name,word_reader(request_line,14));
+        strcpy(base.current_table.name,word_reader(request_line,13));
         string tmp = base.current_table.name;
         if (check_in_list(base.available_tables,tmp)){
             cout << "Already exists.";
@@ -179,11 +177,21 @@ public:
             cout << "Error 2";
             exit(-1);
         }
-        fputc(base.current_table.columns_amount,table);
-
+        cout << base.current_table.name;
+        // create table [a-zA-Z0-9]+\([a-zA-Z]+ [a-zA-Z]+\([0-9]+\)\);
+        int pos = 14 + strlen(base.current_table.name);
+        strcpy(base.current_table.col_name,word_reader(request_line,pos));
+        pos += strlen(base.current_table.col_name);
+        cout << base.current_table.col_name;
+        strcpy(base.current_table.col_type,word_reader(request_line,pos));
+        pos += strlen(base.current_table.col_type);
+        cout << base.current_table.col_type;
+        strcpy(base.current_table.col_dig,word_reader(request_line,pos));
+        pos += strlen(base.current_table.col_dig);
+        cout << base.current_table.col_dig;
     }
     void select(){
-        int colomns, strings;
+        /*int colomns, strings;
         vector <vector <string>> mas (colomns, vector <string>(10));
         string k = "gof";
         for (int j=0;j<5;j++) {
@@ -192,7 +200,7 @@ public:
             }
         }
         complex_table_printer(mas);
-        cout << endl;
+        cout << endl;*/
     }
 };
 
