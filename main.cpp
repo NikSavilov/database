@@ -7,6 +7,15 @@
 #include <fstream>
 using namespace std;
 
+char *string_to_char(string tmp_string, char *cur_char_array){
+    char *char_array = (char*) malloc(tmp_string.size()* sizeof(char));
+    int j;
+    for(j=0;j<tmp_string.length();j++){
+        char_array[j]=tmp_string[j];
+    }
+    char_array[j+1] = '\n';
+    return char_array;
+}
 bool check_in_list(vector <string> &available_names, string &current){
     bool in_list_flag = 0;
     for (int i=0;i<available_names.size();i++){
@@ -24,16 +33,16 @@ void horiz_border_printer(int n){
     }
     cout << "+\n";
 }
-char *word_reader(string str, int position){
-    int i = 0;
-    char *word =(char*) malloc(sizeof(char)*(i+1));
-    while (isalnum(str[position])||(!isalnum(word[0]))) {
-        strcat(word,str.c_str());
+char *word_reader(char *char_array, int position){
+    int word_position = 0;
+    char *word =(char*) malloc(sizeof(char)*word_position + 1);
+    while (isalnum(char_array[position])||(!isalnum(word[0]))) {
+        word[word_position] = char_array[position];
         position++;
-        (isalnum(word[0])) ? i++ : 0;
-        word =(char*) realloc(word, sizeof(char)*(i+1));
+        (isalnum(word[0])) ? word_position++ : 0;
+        word =(char*) realloc(word, sizeof(char)*(word_position)+1);
     }
-    word[i]='\0';
+    word[word_position]='\0';
     return word;
 }
 void string_table_printer(vector <string> &vector1){
@@ -81,9 +90,11 @@ public:
     char name[256];
     vector <string> types_of_columns;
     vector <string> names_of_columns;
+    vector <int> digs_of_columns;
     int columns_amount, rows_amount;
     char col_name[64], col_type[64], col_dig[64];
     bool col_key_flag;
+
 };
 class database {
 public:
@@ -97,16 +108,16 @@ public:
 class request{
 public:
     database base;
-    string request_line;
+    char request_line[256];
     int type_of_request = 0;
     void RequestSet() {
-        getline(cin,request_line);
+        gets(request_line);
     }
     void type_identifier() {
         regex create_database_mask("create database [a-zA-Z0-9]+;");
         regex show_databases_mask("show databases;");
         regex use_mask("use [a-zA-Z0-9]+;");
-        regex create_table_mask("create table [a-zA-Z0-9]+\\([a-zA-Z]+ [a-zA-Z]+\\([0-9]+\\)\\);");
+        regex create_table_mask("create table [a-zA-Z0-9]+\\([a-zA-Z]+ [a-zA-Z]+\\([0-9]+\\)[, [a-zA-Z]+ [a-zA-Z]+\\([0-9]+\\)]*\\);");
         regex select_mask("select [a-zA-Z0-9\\*]+[, [a-zA-Z0-9\\*]+]* from [a-zA-Z0-9]+;");
         regex insert_mask("insert into [a-zA-Z0-9]+\\([a-zA-Z0-9]+[, [a-zA-Z0-9]+]*\\) values [a-zA-Z0-9]+\\.[a-zA-Z0-9]+[, [a-zA-Z0-9]+\\.[a-zA-Z0-9]+]*;");
         regex delete_mask("delete");
@@ -118,13 +129,15 @@ public:
     void create_database() {
         strcpy(base.name,word_reader(request_line,16));
         string tmp_str = base.name;
+        /*проверку вынести в функцию (смотри повторы чекинлист)*/
         if (check_in_list(base.available_names,tmp_str) == 0){
                 base.available_names.insert(base.available_names.end(),tmp_str);
                 cout << base.name << " was added to the db-list." << endl;
         };
+        /*---------------------------*/
         if (mkdir(base.name) != 0 ) {
             cout << "Can't create database.";
-            exit(-1);
+            return;
         }
         else {
             cout << base.name << " was created.";
@@ -132,10 +145,9 @@ public:
         ofstream tables_list;
         tables_list.open(strcat(base.name,"/list"));
         if (!tables_list) {
-            cout << "Error";
+            cout << "Error of creating tables list.";
             exit(-1);
         }
-        tables_list << "0" << " ";
         tables_list.close();
     };
     void show_databases(){
@@ -158,29 +170,37 @@ public:
             cout << "Error 1";
             exit(-1);
         }
-        string buffer_str;
+        string tmp_str;
         int i = 0;
-        while (tables_list >> buffer_str) {
-            base.available_tables.push_back(buffer_str);
+        while (tables_list >> tmp_str) {
+            base.available_tables.push_back(tmp_str);
             i++;
         }
-        base.columns_amount = base.available_tables.size();
         tables_list.close();
-        strcpy(base.current_table.name,word_reader(request_line,13));
-        string tmp = base.current_table.name;
-        if (check_in_list(base.available_tables,tmp)){
-            cout << "Already exists.";
-            exit(-1);
+        tmp_str = word_reader(request_line,13);                 // должно работать только с нормализованной строкой, написать ф-цию
+        if (check_in_list(base.available_tables,tmp_str) == 1){ // смотри повторы чекинлист
+            cout << "Base already exists.";
+            return;
         }
+        strcpy(base.current_table.name,tmp_str.c_str());
         FILE *table;
         if (!(table = fopen(base.current_table.name,"w"))){
             cout << "Error 2";
             exit(-1);
         }
-        cout << base.current_table.name;
         // create table [a-zA-Z0-9]+\([a-zA-Z]+ [a-zA-Z]+\([0-9]+\)\);
         int pos = 14 + strlen(base.current_table.name);
-        strcpy(base.current_table.col_name,word_reader(request_line,pos));
+        i=0;
+        do {
+            base.current_table.names_of_columns.push_back(word_reader(request_line,pos));
+            pos += strlen(base.current_table.names_of_columns[i]);
+            base.current_table.types_of_columns.push_back(word_reader(request_line,pos));// можно пушить чары в стринги?
+            pos += strlen(base.current_table.names_of_columns[i]);
+            base.current_table.digs_of_columns.push_back(atoi(word_reader(request_line,pos)));
+            pos += strlen(base.current_table.names_of_columns[i]);
+        }
+        while ((strlen(request_line)-pos) > 2);
+
         pos += strlen(base.current_table.col_name);
         cout << base.current_table.col_name;
         strcpy(base.current_table.col_type,word_reader(request_line,pos));
